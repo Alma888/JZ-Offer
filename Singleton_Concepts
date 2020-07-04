@@ -1,0 +1,140 @@
+# JZ-Offer
+
+ 单例模式是开发模式中最简单、最易理解的一种模式。简单地说，它指的就是始终保持一个实例
+ 的意思。但是，Java的类是可以创建多个实例的，这该如何去控制呢？（本文将讲解单例开发模式
+ 的原理和实现方式）
+
+一、单例开发模式的原理
+
+1、单例模式有3个要点：
+      ① 某个类只能有一个实例；
+      ② 它必须自行创建这个实例；
+      ③ 它必须自行向整个系统提供这个实例。
+      例如：一些资源管理器常常设计成单例模式。
+
+      在计算机系统中，需要管理的资源有很多，例如每台计算机有若干个打印机，但只能有一个
+      打印控制器，以避免两个打印作业同时输出到打印机中。每台计算机可以有若干传真卡，但是
+      只应该有一个软件负责管理传真卡，以避免出现两份传真作业同时传到传真卡中的情况。
+
+2、单例模式的应用
+      资源管理器构件必须只有一个实例这是其一；
+                    必须自行初始化这是其二；
+                    允许整个系统访问自己这是其三。
+      因此，它们都满足单例模式的条件，是单例模式的应用。
+
+      在Java中，需要单例的情况也很多，比如：数据库连接池，它只能有一
+      个，它需要自行创建并允许其他模块访问它。
+
+     Java中实现单例模式一般需要注意以下几点。
+       私有的构造方法。保证外部无法创建类实例。
+       私有的静态的类型引用。因为静态就可以保证只有一个变量引用。
+       提供获取实例的方法。方法名一般为 getInstance()。
+     以上3点是开发单例模式所必需的。另外，按照实现细节的不同，单例模式通常有
+     两种实现形式：懒汉式和饿汉式。懒汉式是在第一次获取实例的时候才创建对象；
+                                   而饿汉式则是在类加载时就已经创建对象了。
+
+说明： 懒汉式相对来说，更加常用一些。
+
+
+二、单例开发模式的实现方式（上面已经说过该模式有两种实现方式：懒汉式和饿汉式）
+
+（1）懒汉式（懒加载）
+          下面第一段代码：不安全
+          下面第二段代码：安全但是效率不高
+          下面第三段代码： 二次校验——效率高
+
+      1、对于懒汉式来说，一般需要在getInstance()方法中首先判断实例是否为空，也就是第一次
+         访问的时候才会进入该if语句，然后再返回该实例，例如下面的代码：
+             private static XXXObject obj=null;        //静态的类型引用
+             private XXXObject(){}
+             public static XXXObject getInstance(){    //获取实例的方法
+                 if(obj==null){
+                     obj=new XXXObject();              //创建新的
+                 }
+                 return obj;
+             }
+
+          懒汉式有一个缺点，它可能会线程不安全而无法保证 100%的单例。例如：当线程 A在以上
+          代码的第 4 行（进入 if 语句以后，创建实例以前）暂停了，此时线程 B进入了getInstance()
+          方法，它创建了一个新的实例并返回了，然后线程 A回复，它又创建了一个新实例。因此，
+          为了保证懒汉式能做到 100%的单例，还需要为getInstance()方法加上Synchronized关键字以
+          保证线程同步，例如下面的代码：
+            *****多线程安全版本1： (使用同步方法)
+                public class Solution1 {
+                    private Solution1(){}
+                    private static Solution1 instance=null;   //静态的类型引用
+                    public static synchronized Solution1 getInstance(){   //获取实例的方法，保证同步
+                        if(instance==null){
+                            instance=new Solution1();    //创建新的
+                        }
+                        return instance;
+                    }
+                }
+
+               上述代码中的一次锁住了一个方法， 这个粒度有点大 ；改进就是只锁住其中的new
+               语句就OK。就是所谓的 “双重锁” 机制。synchronized 关键字也可以运用在方法
+               体中，用同步代码块的形式来保证线程同步，不一定用同步方法。例如下面代码：
+            *****多线程安全版本2：(使用双重同步锁）——强烈推荐用
+               public class Solution2 {
+                   private Solution2(){}
+                   private static Solution2 instance=null;   //静态的类型引用
+                   public static Solution2 getInstance(){  //获取实例的方法，保证同步
+                       if(instance==null){                 //判断第一次
+                           synchronized (Solution2.class){
+                               if(instance==null){         //判断第二次
+                                   instance=new Solution2();  //创建新的
+                               }
+                           }
+                       }
+                       return instance;
+                   }
+               }
+
+
+（2）饿汉式（饿加载）
+         一进来，就初始化，
+         getInstance方法称为工厂方法，生成对象的方法
+         下面代码中，饿汉模式，一进门就初始化，并且创建好对象person，
+          外边调用getInstance方法来返回一个对象（返回的是饿汉已经创建好的
+          对象，已保证用的是用一个对象）。
+       *****多线程安全版本3：(不使用同步锁）
+              public class Solution3 {
+                  private Solution3(){}//private类型的构造函数，保证其他类对象不能直接new一个该对象的实例
+                  private static Solution3 instance=new Solution3();//直接初始化一个实例对象
+                  public static Solution3 getInstance(){  //该类唯一的一个public方法
+                      return instance;
+                  }
+              }
+
+             Solution3 s=new Solution3 ();  //编译出错
+             Solution3 s=Solution3 .getInstance(); //保证用的是用一个实例
+
+       上述代码中的一个缺点是该类加载的时候就会直接new 一个静态对象出来，当系统中这样的
+       类较多时，会使得启动速度变慢 。现在流行的设计都是讲“延迟加载”，我们可以在第一次
+       使用的时候才初始化第一个该类对象。所以这种适合在小系统。
+
+       总结，饿汉式不存在线程安全的问题，但是它可能会造成资源浪费的情况。因为，实例会在
+       类加载的时候，随着静态变量的初始化而创建，但是有的时候并不会使用该实例，那么它的
+       创建就有一些浪费了，如果该实例化比较庞大的话，还可能会影响程序的性能。
+
+（3）静态内部类（按需创建实例）
+       *****多线程安全版本4：(使用静态代码块按需创建实例）—推荐使用2
+              public class Solution4 {
+                  private Solution4(){} //声明为 private 避免调用默认构造方法创建对象
+
+                  //静态内部类，在外部类加载的时候并不会被加载。
+                  //声明为 private 表明静态内部该类只能在该Singleton 类中被访问
+                  private static class Solution4Holder{
+                      private static final Solution4 instance=new Solution4();
+                  }
+                  public static Solution4 getInstance(){
+                      return Solution4Holder.instance;
+                  }
+              }
+
+     当Singleton 类被加载时，静态内部类Solution4Holder没有被加载进内存。只有当调
+     用Solution4Holder.instance时，Solution4Holder 才会被加载，此时初始化instance
+     实例，并且JVM能确保Instance只被实例化一次。
+  好处： 这种方式不仅具有延迟初始化的好处，而且由JVM 提供了对线程安全的支持。
+
+
